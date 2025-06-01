@@ -2,25 +2,27 @@ import asyncio, httpx, random, cv2, hashlib, math, zlib, base64, time, json, re
 from human_cursor import HumanizeMouseTrajectory
 import numpy as np
 
-# x 20-54 y 11-54
-# next_button x 10 -360 y 408-440
+
 class protonSolver:
 
 	def __init__(self):
 		self.hc = HumanizeMouseTrajectory()
 
 
-	async def solve_challenge(self, captcha_token, proxy, url="", purpose="signup", useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36", cookies={}):
+	async def solve_challenge(self, captcha_token, proxy="", url="", purpose="signup", useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36", cookies={}):
 
-		async with httpx.AsyncClient(http2=True, timeout=15, proxy=proxy, verify=False) as client:
+		async with httpx.AsyncClient(http2=True, timeout=15, proxy=proxy if proxy != "" else None, verify=False if "localhost" in proxy else True) as client:
 			headers = {'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9,fr;q=0.8,ar;q=0.7', 'cache-control': 'no-cache', 'dnt': '1', 'pragma': 'no-cache', 'priority': 'u=0, i', 'sec-ch-ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"Windows"', 'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate', 'sec-fetch-site': 'none', 'sec-fetch-user': '?1', 'upgrade-insecure-requests': '1', 'user-agent': useragent}
 			client.cookies.update(cookies)
 
 			r = await client.get(f"https://verify-api.proton.me/core/v4/captcha?Token={captcha_token}&ForceWebMessaging=1&Dark=true", headers=headers)
 			if r.status_code != 200:
 				return None
-			
-			k = eval(re.findall(r"sendToken\((.*?)\);", r.text)[0].replace("+response", ""))
+			try:
+				k = eval(re.findall(r"sendToken\((.*?)\);", r.text)[0].replace("+response", ""))
+			except: #error fetching challenge
+				return None
+
 			r = await client.get(f"https://verify-api.proton.me/captcha/v1/api/init?challengeType=2D&parentURL=https%3A%2F%2Fverify-api.proton.me%2Fcore%2Fv4%2Fcaptcha%3FToken%3D{captcha_token}%26ForceWebMessaging%3D1%26Dark%3Dtrue&displayedLang=en&supportedLangs=en-US%2Cen-US%2Cen-US%2Cen&purpose={purpose}&token={captcha_token}", headers=headers)
 			data = r.json()
 			token, contest_id, n_leading_zeros, challenges = data["token"], data["contestId"], data["nLeadingZerosRequired"], data["challenges"]
@@ -73,7 +75,7 @@ class protonSolver:
 				return challenge_id
 			return None
 
-	def generate_timestamps(self, count):		
+	def generate_timestamps(self, count):
 		timestamps = []
 		current = float(random.randint(1000, 3000))
 		start = random.randint(1000, 2800)
@@ -83,7 +85,7 @@ class protonSolver:
 			timestamps.append(current + random.uniform(-0.0001, 0.0001))
 		return timestamps
 
-	def generate_solution_coodinates(self, puzzle_img, background_img):		
+	def generate_solution_coodinates(self, puzzle_img, background_img):
 		puzzle_piece = cv2.imdecode(np.frombuffer(puzzle_img, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
 		background = cv2.imdecode(np.frombuffer(background_img, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
 
@@ -176,5 +178,5 @@ class protonSolver:
 
 if __name__ == "__main__":
 	k = protonSolver()
-	p = asyncio.run(k.solve_challenge("QtdNFs9M1gaYdfzPtEKiJ61f", "http://localhost:8080"))
+	p = asyncio.run(k.solve_challenge("QtdNFs9M1gaYdfzPtEKiJ61f"))
 	print(f"solution={p}")
