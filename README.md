@@ -29,3 +29,6 @@ In order to fetch the challenge and the captcha to be displayed, a valid captcha
 "https://verify-api.proton.me/core/v4/captcha?Token=captcha_token_here&ForceWebMessaging=1&Dark=true"
 
 To speed up development i made a mitmproxy addon (mitmproxy_addon.py) that always loads the captcha regardless if the token is valid or not.
+
+## Acknowledgements
+[HumanCursor](https://github.com/riflosnake/HumanCursor)
